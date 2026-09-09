@@ -17,8 +17,8 @@ export function TypeFilter({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Types:</span>
+    <div className="flex items-center gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+      <span className="shrink-0 text-sm font-medium text-zinc-500 dark:text-zinc-400">Types:</span>
       {MEAL_TYPES.map((type) => {
         const active = selected.includes(type);
         return (
@@ -26,7 +26,7 @@ export function TypeFilter({
             key={type}
             type="button"
             onClick={() => toggle(type)}
-            className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+            className={`shrink-0 rounded-full border px-3 py-1.5 text-sm transition-colors ${
               active
                 ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-black"
                 : "border-zinc-300 text-zinc-700 hover:border-zinc-500 dark:border-zinc-700 dark:text-zinc-300"
@@ -39,7 +39,7 @@ export function TypeFilter({
       <button
         type="button"
         onClick={() => onChange([])}
-        className="text-sm text-zinc-400 underline-offset-2 hover:text-zinc-600 hover:underline dark:hover:text-zinc-300"
+        className="shrink-0 text-sm text-zinc-400 underline-offset-2 hover:text-zinc-600 hover:underline dark:hover:text-zinc-300"
       >
         All
       </button>

@@ -152,7 +152,7 @@ export async function savePlan(plan: WeekPlan): Promise<void> {
       WeekStart: plan.weekStart,
       Days: JSON.stringify(plan.days),
       Coverage: plan.coverage ?? 2,
-      Servings: plan.servings ?? 4,
+      Servings: plan.servings ?? 2,
     },
   };
   if (existing) {

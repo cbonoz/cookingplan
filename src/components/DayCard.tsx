@@ -40,7 +40,7 @@ export function DayCard({
             type="button"
             onClick={onOpenPicker}
             title="Put a different meal here"
-            className="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-200 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-200 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
           >
             ✎
           </button>
@@ -75,7 +75,7 @@ export function DayCard({
             type="button"
             onClick={onToggleLock}
             title={locked ? "Unlock day" : "Lock day"}
-            className={`rounded-lg p-1.5 transition-colors ${
+            className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
               locked
                 ? "bg-zinc-200 text-zinc-900 dark:bg-zinc-700 dark:text-zinc-100"
                 : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
@@ -87,7 +87,7 @@ export function DayCard({
             type="button"
             onClick={onShuffle}
             title="Reshuffle this day"
-            className="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
           >
             🎲
           </button>
@@ -95,7 +95,7 @@ export function DayCard({
             type="button"
             onClick={onOpenPicker}
             title={meal ? "Change meal" : "Add a meal"}
-            className="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
           >
             ✎
           </button>
@@ -104,7 +104,7 @@ export function DayCard({
               type="button"
               onClick={onClear}
               title="Clear meal"
-              className="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
             >
               ✕
             </button>

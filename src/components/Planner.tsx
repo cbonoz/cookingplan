@@ -16,7 +16,7 @@ function normalizePlan(raw: WeekPlan): WeekPlan {
   return {
     weekStart: raw.weekStart,
     coverage: raw.coverage && raw.coverage >= 1 && raw.coverage <= 7 ? raw.coverage : 2,
-    servings: raw.servings && raw.servings >= 1 ? raw.servings : 4,
+    servings: raw.servings && raw.servings >= 1 ? raw.servings : 2,
     days: raw.days.map((slot) => {
       if (!slot) return null;
       return { mealId: slot.mealId, locked: slot.locked };
@@ -193,50 +193,52 @@ export function Planner() {
         <SaveIndicator state={saveState} />
       </div>
 
-      <div className="mb-6 flex flex-wrap items-center gap-4 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+<div className="mb-6 flex flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
         <TypeFilter selected={selectedTypes} onChange={setSelectedTypes} />
-        <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-          <input
-            type="checkbox"
-            checked={noRepeat}
-            onChange={(e) => setNoRepeat(e.target.checked)}
-            className="h-4 w-4 accent-zinc-900 dark:accent-zinc-100"
-          />
-          No repeats in the week
-        </label>
-        <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-          <span className="text-zinc-500 dark:text-zinc-400">Each meal covers</span>
-          <select
-            value={coverage}
-            onChange={(e) => handleCoverageChange(Number(e.target.value))}
-            className="rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+            <input
+              type="checkbox"
+              checked={noRepeat}
+              onChange={(e) => setNoRepeat(e.target.checked)}
+              className="h-4 w-4 accent-zinc-900 dark:accent-zinc-100"
+            />
+            No repeats
+          </label>
+          <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+            <span className="text-zinc-500 dark:text-zinc-400">Each meal covers</span>
+            <select
+              value={coverage}
+              onChange={(e) => handleCoverageChange(Number(e.target.value))}
+              className="rounded-lg border border-zinc-300 bg-white px-2 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+            >
+              {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                <option key={n} value={n}>
+                  {n} {n === 1 ? "day" : "days"}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+            <span className="text-zinc-500 dark:text-zinc-400">People</span>
+            <input
+              type="number"
+              min={1}
+              max={30}
+              value={plan?.servings ?? 4}
+              onChange={(e) => handleServingsChange(Math.max(1, Number(e.target.value)))}
+              className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={handleShuffleWeek}
+            disabled={!plan || meals.length === 0}
+            className="ml-auto w-full rounded-full bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-300"
           >
-            {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-              <option key={n} value={n}>
-                {n} {n === 1 ? "day" : "days"}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-          <span className="text-zinc-500 dark:text-zinc-400">People</span>
-          <input
-            type="number"
-            min={1}
-            max={30}
-            value={plan?.servings ?? 4}
-            onChange={(e) => handleServingsChange(Math.max(1, Number(e.target.value)))}
-            className="w-16 rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
-          />
-        </label>
-        <button
-          type="button"
-          onClick={handleShuffleWeek}
-          disabled={!plan || meals.length === 0}
-          className="ml-auto rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-300"
-        >
-          Shuffle Week
-        </button>
+            Shuffle Week
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -276,7 +278,7 @@ export function Planner() {
           </div>
 
           <div className="mt-6">
-            <GroceryList meals={groceryMeals} servings={plan?.servings ?? 4} />
+            <GroceryList meals={groceryMeals} servings={plan?.servings ?? 2} />
           </div>
         </>
       )}

@@ -236,18 +236,18 @@ export function MealManager() {
         </div>
       </form>
 
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
         <input
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search meals…"
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+          className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none sm:w-auto sm:flex-1 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
         />
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value as MealType | "")}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+          className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none sm:w-auto dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
         >
           <option value="">All types</option>
           {MEAL_TYPES.map((t) => (
@@ -256,7 +256,7 @@ export function MealManager() {
             </option>
           ))}
         </select>
-        <span className="ml-auto text-sm text-zinc-400">
+        <span className="text-sm text-zinc-400 sm:ml-auto">
           {filtered.length} meal{filtered.length === 1 ? "" : "s"}
         </span>
       </div>
@@ -311,7 +311,7 @@ export function MealManager() {
                     <button
                       type="button"
                       onClick={() => setEditingId(meal.id)}
-                      className="rounded-lg px-2 py-1 text-sm text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                      className="rounded-lg px-3 py-2 text-sm text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
                     >
                       Edit
                     </button>
@@ -319,7 +319,7 @@ export function MealManager() {
                       type="button"
                       onClick={() => remove(meal.id)}
                       disabled={busy}
-                      className="rounded-lg px-2 py-1 text-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                      className="rounded-lg px-3 py-2 text-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40"
                     >
                       Delete
                     </button>
