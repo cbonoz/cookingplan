@@ -6,6 +6,9 @@ export interface SeedMealInput {
   type: MealType;
   protein?: string;
   modifier?: string;
+  link?: string;
+  notes?: string;
+  ingredients?: string;
   date?: string;
 }
 
@@ -17,6 +20,9 @@ export function mealToSeedInput(meal: Meal): SeedMealInput {
     type: meal.type,
     protein: meal.protein,
     modifier: meal.modifier,
+    link: meal.link,
+    notes: meal.notes,
+    ingredients: meal.ingredients,
     date: meal.date,
   };
 }

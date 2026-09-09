@@ -15,20 +15,21 @@ export function shuffleWeek(
   meals: Meal[],
   options: ShuffleOptions,
   existing?: WeekPlan,
+  coverage = 2,
   date = new Date(),
 ): WeekPlan {
   const pool = filterPool(meals, options);
   const days = existing
-    ? existing.days.map((slot) => (slot ? { ...slot } : null))
+    ? existing.days.map((slot) => (slot && slot.locked ? { ...slot } : null))
     : Array(7).fill(null);
 
   const used = new Set<string>();
   for (const day of days) {
-    if (day?.mode === "cook" && day.mealId) used.add(day.mealId);
+    if (day?.mealId) used.add(day.mealId);
   }
 
   if (pool.length === 0) {
-    return { weekStart: weekStartOf(date), days };
+    return { weekStart: weekStartOf(date), days, coverage };
   }
 
   const shuffled = [...pool];
@@ -37,14 +38,24 @@ export function shuffleWeek(
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
 
-  let idx = 0;
+  const cookDays: number[] = [];
+  let lastCook = -Infinity;
   for (let d = 0; d < 7; d++) {
-    const slot = days[d];
-    if (!slot || slot.mode !== "cook") continue;
-    if (slot.locked && slot.mealId) continue;
+    if (days[d]?.locked && days[d].mealId) {
+      cookDays.push(d);
+      lastCook = d;
+      continue;
+    }
+    if (d - lastCook >= coverage) {
+      cookDays.push(d);
+      lastCook = d;
+    }
+  }
 
+  let idx = 0;
+  for (const d of cookDays) {
     let candidate = shuffled[idx % shuffled.length];
-    if (options.noRepeat && shuffled.length >= 7) {
+    if (options.noRepeat) {
       let tries = 0;
       while (used.has(candidate.id) && tries < shuffled.length) {
         idx = (idx + 1) % shuffled.length;
@@ -52,12 +63,12 @@ export function shuffleWeek(
         tries++;
       }
     }
-    days[d] = { ...slot, mealId: candidate.id };
+    days[d] = { ...(days[d] ?? {}), mealId: candidate.id };
     used.add(candidate.id);
     idx = (idx + 1) % shuffled.length;
   }
 
-  return { weekStart: weekStartOf(date), days };
+  return { weekStart: weekStartOf(date), days, coverage };
 }
 
 export function pickMeal(

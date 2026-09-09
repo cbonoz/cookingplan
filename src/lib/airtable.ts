@@ -28,6 +28,10 @@ interface AirtableRecord {
   fields: Record<string, unknown>;
 }
 
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function mapMeal(record: AirtableRecord): Meal {
   const f = record.fields;
   return {
@@ -36,7 +40,10 @@ function mapMeal(record: AirtableRecord): Meal {
     type: (f.Type as MealType) ?? "Vegetarian",
     protein: f.Protein ? String(f.Protein) : undefined,
     modifier: f.Modifier ? String(f.Modifier) : undefined,
-    date: f.Date ? String(f.Date) : undefined,
+    link: f.Link ? String(f.Link) : undefined,
+    notes: f.Notes ? String(f.Notes) : undefined,
+    ingredients: f.Ingredients ? String(f.Ingredients) : undefined,
+    date: f.Date ? String(f.Date) : todayISO(),
   };
 }
 
@@ -62,7 +69,10 @@ export async function createMeal(
               Type: meal.type,
               Protein: meal.protein ?? "",
               Modifier: meal.modifier ?? "",
-              Date: meal.date ?? "",
+              Link: meal.link ?? "",
+              Notes: meal.notes ?? "",
+              Ingredients: meal.ingredients ?? "",
+              Date: meal.date ?? todayISO(),
             },
           },
         ],
@@ -86,7 +96,10 @@ export async function updateMeal(id: string, meal: Omit<Meal, "id">): Promise<Me
               Type: meal.type,
               Protein: meal.protein ?? "",
               Modifier: meal.modifier ?? "",
-              Date: meal.date ?? "",
+              Link: meal.link ?? "",
+              Notes: meal.notes ?? "",
+              Ingredients: meal.ingredients ?? "",
+              Date: meal.date ?? todayISO(),
             },
           },
         ],
@@ -105,6 +118,8 @@ interface PlanRecord {
   fields: {
     WeekStart?: string;
     Days?: string;
+    Coverage?: number;
+    Servings?: number;
   };
 }
 
@@ -119,7 +134,15 @@ async function findPlanRecord(weekStart: string): Promise<PlanRecord | null> {
 export async function getPlan(weekStart: string): Promise<WeekPlan | null> {
   const record = await findPlanRecord(weekStart);
   if (!record) return null;
-  return parsePlan(record.fields.Days ?? "", weekStart);
+  const plan = parsePlan(record.fields.Days ?? "", weekStart);
+  if (!plan) return null;
+  return {
+    ...plan,
+    coverage:
+      typeof record.fields.Coverage === "number" ? record.fields.Coverage : undefined,
+    servings:
+      typeof record.fields.Servings === "number" ? record.fields.Servings : undefined,
+  };
 }
 
 export async function savePlan(plan: WeekPlan): Promise<void> {
@@ -128,6 +151,8 @@ export async function savePlan(plan: WeekPlan): Promise<void> {
     fields: {
       WeekStart: plan.weekStart,
       Days: JSON.stringify(plan.days),
+      Coverage: plan.coverage ?? 2,
+      Servings: plan.servings ?? 4,
     },
   };
   if (existing) {

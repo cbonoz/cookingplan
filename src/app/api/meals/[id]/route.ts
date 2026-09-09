@@ -12,6 +12,9 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/meals/[id]
       type?: MealType;
       protein?: string;
       modifier?: string;
+      link?: string;
+      notes?: string;
+      ingredients?: string;
       date?: string;
     };
     if (!body.name?.trim()) {
@@ -22,6 +25,9 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/meals/[id]
       type: body.type ?? "Vegetarian",
       protein: body.protein?.trim() || undefined,
       modifier: body.modifier?.trim() || undefined,
+      link: body.link?.trim() || undefined,
+      notes: body.notes?.trim() || undefined,
+      ingredients: body.ingredients?.trim() || undefined,
       date: body.date?.trim() || undefined,
     });
     return NextResponse.json(meal);

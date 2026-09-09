@@ -10,10 +10,20 @@ interface MealDraft {
   type: MealType;
   protein: string;
   modifier: string;
-  date: string;
+  link: string;
+  notes: string;
+  ingredients: string;
 }
 
-const EMPTY: MealDraft = { name: "", type: "Vegetarian", protein: "", modifier: "", date: "" };
+const EMPTY: MealDraft = {
+  name: "",
+  type: "Vegetarian",
+  protein: "",
+  modifier: "",
+  link: "",
+  notes: "",
+  ingredients: "",
+};
 
 export function MealManager() {
   const [meals, setMeals] = useState<Meal[]>([]);
@@ -24,6 +34,11 @@ export function MealManager() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [discoverUrl, setDiscoverUrl] = useState("");
+  const [discovering, setDiscovering] = useState(false);
+  const [discoverMsg, setDiscoverMsg] = useState<string | null>(null);
+  const [discoverErr, setDiscoverErr] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/meals")
@@ -48,6 +63,40 @@ export function MealManager() {
     setDraft((d) => ({ ...d, [field]: value }));
   };
 
+  const handleDiscover = async () => {
+    const url = discoverUrl.trim();
+    if (!url) return;
+    setDiscovering(true);
+    setDiscoverMsg(null);
+    setDiscoverErr(null);
+    try {
+      const res = await fetch("/api/discover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const data = (await res.json()) as {
+        name?: string;
+        notes?: string;
+        ingredients?: string;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(data.error ?? "Failed to read that link");
+      setDraft((d) => ({
+        ...d,
+        name: data.name ?? d.name,
+        link: url,
+        notes: data.notes ?? d.notes,
+        ingredients: data.ingredients ?? d.ingredients,
+      }));
+      setDiscoverMsg(`Found "${data.name}". Review the fields below and add it.`);
+    } catch (err) {
+      setDiscoverErr(err instanceof Error ? err.message : "Could not read that link");
+    } finally {
+      setDiscovering(false);
+    }
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!draft.name.trim()) return;
@@ -63,6 +112,7 @@ export function MealManager() {
       const created = (await res.json()) as Meal;
       setMeals((prev) => [...prev, created]);
       setDraft(EMPTY);
+      setDiscoverMsg(null);
     } catch {
       setError("Failed to add meal");
     } finally {
@@ -111,6 +161,32 @@ export function MealManager() {
 
       <form onSubmit={submit} className="mb-6 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
         <h2 className="mb-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">Add a meal</h2>
+
+        <div className="mb-4 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-950">
+          <p className="mb-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+            Discover from a recipe link
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              type="url"
+              value={discoverUrl}
+              onChange={(e) => setDiscoverUrl(e.target.value)}
+              placeholder="https://… paste any recipe URL"
+              className="w-full flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+            />
+            <button
+              type="button"
+              onClick={handleDiscover}
+              disabled={discovering || !discoverUrl.trim()}
+              className="shrink-0 rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-500 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300"
+            >
+              {discovering ? "Fetching…" : "Suggest details"}
+            </button>
+          </div>
+          {discoverMsg && <p className="mt-2 text-sm text-emerald-600 dark:text-emerald-400">{discoverMsg}</p>}
+          {discoverErr && <p className="mt-2 text-sm text-rose-500">{discoverErr}</p>}
+        </div>
+
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Input label="Name *" value={draft.name} onChange={(v) => setField("name", v)} placeholder="e.g. Lasagna" />
           <Field label="Type">
@@ -128,8 +204,26 @@ export function MealManager() {
           </Field>
           <Input label="Protein" value={draft.protein} onChange={(v) => setField("protein", v)} placeholder="Chicken, tofu…" />
           <Input label="Modifier (optional)" value={draft.modifier} onChange={(v) => setField("modifier", v)} placeholder="with rice / add feta…" />
-          <Input label="Date (optional)" value={draft.date} onChange={(v) => setField("date", v)} placeholder="2026-09-14" />
+          <Input label="Recipe link (optional)" value={draft.link} onChange={(v) => setField("link", v)} placeholder="https://…" />
         </div>
+        <Field label="Ingredients (one per line)">
+          <textarea
+            value={draft.ingredients}
+            onChange={(e) => setField("ingredients", e.target.value)}
+            rows={3}
+            placeholder={"2 chicken breasts\n1 cup rice\n… (used for the grocery list)"}
+            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+          />
+        </Field>
+        <Field label="Notes (optional)">
+          <textarea
+            value={draft.notes}
+            onChange={(e) => setField("notes", e.target.value)}
+            rows={2}
+            placeholder="Custom notes, ingredients to grab, tweaks…"
+            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+          />
+        </Field>
         <div className="mt-3 flex items-center gap-3">
           <button
             type="submit"
@@ -179,7 +273,7 @@ export function MealManager() {
               {editingId === meal.id ? (
                 <EditRow meal={meal} busy={busy} onCancel={() => setEditingId(null)} onSave={saveEdit} />
               ) : (
-                <div className="flex items-center gap-3">
+                <div className="flex items-start gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-zinc-900 dark:text-zinc-100">{meal.name}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-1.5">
@@ -192,10 +286,26 @@ export function MealManager() {
                       {meal.modifier && (
                         <span className="text-xs text-zinc-400 dark:text-zinc-500">{meal.modifier}</span>
                       )}
-                      {meal.date && (
-                        <span className="text-xs text-zinc-400 dark:text-zinc-500">· {meal.date}</span>
-                      )}
                     </div>
+                    {meal.notes && (
+                      <p className="mt-1 line-clamp-2 text-xs text-zinc-400 dark:text-zinc-500">{meal.notes}</p>
+                    )}
+                    {meal.ingredients && (
+                      <p className="mt-1 text-[11px] text-zinc-300 dark:text-zinc-600">
+                        🛒 {meal.ingredients.split("\n").filter(Boolean).length} ingredients
+                      </p>
+                    )}
+                    {meal.link && (
+                      <a
+                        href={meal.link}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-sky-600 hover:underline dark:text-sky-400"
+                      >
+                        🔗 Recipe link
+                      </a>
+                    )}
+                    <p className="mt-1 text-[11px] text-zinc-300 dark:text-zinc-600">Added {meal.date}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     <button
@@ -275,7 +385,9 @@ function EditRow({
     type: meal.type,
     protein: meal.protein ?? "",
     modifier: meal.modifier ?? "",
-    date: meal.date ?? "",
+    link: meal.link ?? "",
+    notes: meal.notes ?? "",
+    ingredients: meal.ingredients ?? "",
   });
   return (
     <div className="space-y-3">
@@ -297,7 +409,23 @@ function EditRow({
         <Input label="Protein" value={draft.protein} onChange={(v) => setDraft((d) => ({ ...d, protein: v }))} />
       </div>
       <Input label="Modifier (optional)" value={draft.modifier} onChange={(v) => setDraft((d) => ({ ...d, modifier: v }))} />
-      <Input label="Date (optional)" value={draft.date} onChange={(v) => setDraft((d) => ({ ...d, date: v }))} />
+      <Input label="Recipe link (optional)" value={draft.link} onChange={(v) => setDraft((d) => ({ ...d, link: v }))} />
+      <Field label="Ingredients (one per line)">
+        <textarea
+          value={draft.ingredients}
+          onChange={(e) => setDraft((d) => ({ ...d, ingredients: e.target.value }))}
+          rows={3}
+          className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+        />
+      </Field>
+      <Field label="Notes (optional)">
+        <textarea
+          value={draft.notes}
+          onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value }))}
+          rows={2}
+          className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+        />
+      </Field>
       <div className="flex items-center gap-2">
         <button
           type="button"

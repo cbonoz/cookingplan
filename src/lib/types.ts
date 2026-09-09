@@ -13,6 +13,9 @@ export interface Meal {
   type: MealType;
   protein?: string;
   modifier?: string;
+  link?: string;
+  notes?: string;
+  ingredients?: string;
   date?: string;
 }
 
@@ -28,15 +31,14 @@ export const DAYS = [
 
 export type DayIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
-export type DayMode = "cook" | "leftover" | "off";
-
 export interface DaySlot {
   mealId?: string;
   locked?: boolean;
-  mode: DayMode;
 }
 
 export interface WeekPlan {
   weekStart: string;
   days: (DaySlot | null)[];
+  coverage?: number;
+  servings?: number;
 }

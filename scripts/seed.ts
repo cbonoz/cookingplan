@@ -15,6 +15,10 @@ const dir = path.dirname(fileURLToPath(import.meta.url));
 const seedDataPath = path.join(dir, "../src/lib/seed-data.json");
 const meals = JSON.parse(readFileSync(seedDataPath, "utf8"));
 
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 async function api(path: string, init?: RequestInit) {
   const res = await fetch(`https://api.airtable.com/v0/${BASE_ID}${path}`, {
     ...init,
@@ -54,7 +58,10 @@ async function main() {
         Type: m.type,
         Protein: m.protein ?? "",
         Modifier: m.modifier ?? "",
-        Date: m.date ?? "",
+        Link: m.link ?? "",
+        Notes: m.notes ?? "",
+        Ingredients: m.ingredients ?? "",
+        Date: m.date ?? todayISO(),
       },
     }));
     const data = await api(`/${MEALS_TABLE}`, {
