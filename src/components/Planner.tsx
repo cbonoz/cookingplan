@@ -2,13 +2,31 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DAYS } from "@/lib/types";
-import type { Meal, MealType, WeekPlan } from "@/lib/types";
+import type { DayMode, DaySlot, Meal, MealType, WeekPlan } from "@/lib/types";
 import { weekStartOf } from "@/lib/week";
 import { pickMeal, shuffleWeek } from "@/lib/shuffle";
 import { DayCard } from "./DayCard";
 import { TypeFilter } from "./TypeFilter";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
+
+const EVERY_OTHER_DAY: DayMode[] = ["cook", "leftover", "cook", "leftover", "cook", "leftover", "cook"];
+
+function normalizePlan(raw: WeekPlan): WeekPlan {
+  if (raw.days.every((slot) => slot === null)) {
+    return { weekStart: raw.weekStart, days: EVERY_OTHER_DAY.map((mode) => ({ mode })) };
+  }
+  return {
+    weekStart: raw.weekStart,
+    days: raw.days.map((slot) => {
+      if (!slot) return { mode: "off" };
+      if (!slot.mode) {
+        return slot.mealId ? { ...slot, mode: "cook" } : { mode: "off" };
+      }
+      return { ...slot };
+    }),
+  };
+}
 
 export function Planner() {
   const [meals, setMeals] = useState<Meal[]>([]);
@@ -29,7 +47,7 @@ export function Planner() {
           fetch(`/api/plans?weekStart=${weekStart}`).then((r) => r.json()),
         ]);
         setMeals(mealsRes);
-        setPlan(planRes);
+        setPlan(normalizePlan(planRes));
         loadedRef.current = true;
         setSaveState("saved");
       } catch {
@@ -67,6 +85,37 @@ export function Planner() {
 
   const mealFor = (mealId?: string) => meals.find((m) => m.id === mealId);
 
+  const dayView = (i: number): { meal?: Meal; leftover?: boolean; hasSource?: boolean } => {
+    const slot = plan?.days[i];
+    if (!slot) return {};
+    if (slot.mode === "cook") return { meal: mealFor(slot.mealId) };
+    if (slot.mode === "leftover") {
+      const prev = plan?.days[i - 1];
+      if (prev?.mode === "cook" && prev.mealId) {
+        const meal = mealFor(prev.mealId);
+        return meal ? { meal, leftover: true, hasSource: true } : { hasSource: true };
+      }
+      return { hasSource: false };
+    }
+    return {};
+  };
+
+  const mealOptions = useMemo(() => {
+    let opts = selectedTypes.length
+      ? meals.filter((m) => selectedTypes.includes(m.type))
+      : meals;
+    const assigned = new Set(plan?.days.map((d) => d?.mealId).filter(Boolean) as string[]);
+    for (const m of meals) {
+      if (assigned.has(m.id) && !opts.some((o) => o.id === m.id)) opts = [...opts, m];
+    }
+    return [...opts].sort((a, b) => a.name.localeCompare(b.name));
+  }, [meals, selectedTypes, plan]);
+
+  const updateDays = (days: (DaySlot | null)[]) => {
+    if (!plan) return;
+    setPlan({ ...plan, days });
+  };
+
   const handleShuffleWeek = () => {
     if (!plan) return;
     setPlan(shuffleWeek(meals, { allowedTypes: selectedTypes, noRepeat }, plan));
@@ -76,28 +125,52 @@ export function Planner() {
     if (!plan) return;
     const usedIds = new Set<string>();
     plan.days.forEach((slot, i) => {
-      if (i !== dayIndex && slot?.mealId) usedIds.add(slot.mealId);
+      if (i !== dayIndex && slot?.mode === "cook" && slot.mealId) usedIds.add(slot.mealId);
     });
     const meal = pickMeal(meals, { allowedTypes: selectedTypes, noRepeat }, usedIds);
     if (!meal) return;
     const days = [...plan.days];
-    days[dayIndex] = { mealId: meal.id, locked: days[dayIndex]?.locked };
-    setPlan({ ...plan, days });
+    days[dayIndex] = { ...(days[dayIndex] ?? {}), mode: "cook", mealId: meal.id };
+    updateDays(days);
+  };
+
+  const handlePickMeal = (dayIndex: number, mealId: string) => {
+    if (!plan || !mealId) return;
+    const days = [...plan.days];
+    days[dayIndex] = { ...(days[dayIndex] ?? {}), mode: "cook", mealId };
+    updateDays(days);
+  };
+
+  const handleModeChange = (dayIndex: number, mode: DayMode) => {
+    if (!plan) return;
+    const days = [...plan.days];
+    if (mode === "cook") {
+      days[dayIndex] = { ...(days[dayIndex] ?? {}), mode: "cook" };
+    } else {
+      days[dayIndex] = { mode };
+    }
+    updateDays(days);
   };
 
   const handleToggleLock = (dayIndex: number) => {
     if (!plan) return;
     const days = [...plan.days];
-    const slot = days[dayIndex] ?? {};
+    const slot = days[dayIndex] ?? { mode: "cook" as DayMode };
     days[dayIndex] = { ...slot, locked: !slot.locked };
-    setPlan({ ...plan, days });
+    updateDays(days);
   };
 
   const handleClear = (dayIndex: number) => {
     if (!plan) return;
     const days = [...plan.days];
-    days[dayIndex] = null;
-    setPlan({ ...plan, days });
+    days[dayIndex] = { mode: "cook" };
+    updateDays(days);
+  };
+
+  const handleSetPattern = (pattern: DayMode[]) => {
+    if (!plan) return;
+    const days = pattern.map((mode) => ({ mode }));
+    updateDays(days);
   };
 
   return (
@@ -106,7 +179,7 @@ export function Planner() {
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">This Week&apos;s Plan</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            {weekStart} — auto-saves to Airtable
+            {weekStart} · a cooked meal covers the next day as leftovers
           </p>
         </div>
         <SaveIndicator state={saveState} />
@@ -123,6 +196,12 @@ export function Planner() {
           />
           No repeats in the week
         </label>
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Presets:</span>
+          <PresetButton label="Cook every other day" onClick={() => handleSetPattern(EVERY_OTHER_DAY)} />
+          <PresetButton label="Cook daily" onClick={() => handleSetPattern(Array(7).fill("cook") as DayMode[])} />
+          <PresetButton label="All off" onClick={() => handleSetPattern(Array(7).fill("off") as DayMode[])} />
+        </div>
         <button
           type="button"
           onClick={handleShuffleWeek}
@@ -146,15 +225,21 @@ export function Planner() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {DAYS.map((day, i) => {
-            const slot = plan?.days[i] ?? null;
-            const meal = mealFor(slot?.mealId);
+            const slot = plan?.days[i];
+            const mode = slot?.mode ?? "off";
+            const view = dayView(i);
             return (
               <DayCard
                 key={day}
                 day={day}
                 dateLabel={dateLabel(i)}
-                meal={meal}
+                mode={mode}
+                meal={view.meal}
+                hasSource={view.hasSource}
                 locked={slot?.locked ?? false}
+                mealOptions={mealOptions}
+                onModeChange={(m) => handleModeChange(i, m)}
+                onPickMeal={(id) => handlePickMeal(i, id)}
                 onShuffle={() => handleDayShuffle(i)}
                 onToggleLock={() => handleToggleLock(i)}
                 onClear={() => handleClear(i)}
@@ -171,6 +256,18 @@ export function Planner() {
         </p>
       )}
     </div>
+  );
+}
+
+function PresetButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-full border border-zinc-300 px-3 py-1 text-sm text-zinc-600 transition-colors hover:border-zinc-500 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:text-zinc-100"
+    >
+      {label}
+    </button>
   );
 }
 

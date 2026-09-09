@@ -1,4 +1,4 @@
-import type { DaySlot, Meal, MealType, WeekPlan } from "./types";
+import type { Meal, MealType, WeekPlan } from "./types";
 import { weekStartOf } from "./week";
 
 export interface ShuffleOptions {
@@ -18,12 +18,13 @@ export function shuffleWeek(
   date = new Date(),
 ): WeekPlan {
   const pool = filterPool(meals, options);
-  const days: (DaySlot | null)[] = Array(7).fill(null);
+  const days = existing
+    ? existing.days.map((slot) => (slot ? { ...slot } : null))
+    : Array(7).fill(null);
 
-  if (existing) {
-    for (let d = 0; d < 7; d++) {
-      if (existing.days[d]?.locked) days[d] = existing.days[d];
-    }
+  const used = new Set<string>();
+  for (const day of days) {
+    if (day?.mode === "cook" && day.mealId) used.add(day.mealId);
   }
 
   if (pool.length === 0) {
@@ -36,14 +37,12 @@ export function shuffleWeek(
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
 
-  const used = new Set<string>();
-  for (const day of days) {
-    if (day?.mealId) used.add(day.mealId);
-  }
-
   let idx = 0;
   for (let d = 0; d < 7; d++) {
-    if (days[d] !== null) continue;
+    const slot = days[d];
+    if (!slot || slot.mode !== "cook") continue;
+    if (slot.locked && slot.mealId) continue;
+
     let candidate = shuffled[idx % shuffled.length];
     if (options.noRepeat && shuffled.length >= 7) {
       let tries = 0;
@@ -53,7 +52,7 @@ export function shuffleWeek(
         tries++;
       }
     }
-    days[d] = { mealId: candidate.id };
+    days[d] = { ...slot, mealId: candidate.id };
     used.add(candidate.id);
     idx = (idx + 1) % shuffled.length;
   }
